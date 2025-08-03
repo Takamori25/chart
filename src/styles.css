@@ -50,7 +50,7 @@
   margin: 15px
 }
 
-@media only screen and (max-width: 992px) {
+@media only screen and (max-width: 1009px) {
   .container {
     display: flex;
     flex-direction: column;
@@ -68,14 +68,17 @@
   .chart-title {
   margin: 8px 0px 8px 8px;
   }
-  .button-group {
-  margin: 8px
-  }
-}
 
-@media only screen and (max-width: 810px) {
-  .market {
-    display: none;
+  .button-group {
+  margin: 2px 2px 2px 8px;
+  }
+
+  .time-button {
+    font-size: 20px;
+  }
+
+  .fn-button {
+    font-size: 20px;
   }
 }
 

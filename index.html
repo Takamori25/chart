@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title id="tab-display"></title>
+  <script type="module" crossorigin src="/Takamori25/chart/assets/index-Dwcb3dEm.js"></script>
+  <link rel="stylesheet" crossorigin href="/Takamori25/chart/assets/index-DG8Z5OvN.css">
+</head>
+<body>
+  <div class="container">
+    <div class="left-side">
+      <div class="chart-header">
+        <h3 class="chart-title"><span id="current-symbol">BTC/USDT</span> · <span id="current-interval">4h</span> · BINANCE</h3>
+        <div class="button-group">
+          <button class="time-button" data-interval="1m" onclick="handleSelectTimeFrame(this)">1m</button>
+          <button class="time-button" data-interval="5m" onclick="handleSelectTimeFrame(this)">5m</button>
+          <button class="time-button" data-interval="15m" onclick="handleSelectTimeFrame(this)">15m</button>
+          <button class="time-button" data-interval="30m" onclick="handleSelectTimeFrame(this)">30m</button>
+          <button class="time-button" data-interval="1h" onclick="handleSelectTimeFrame(this)">1h</button>
+          <button class="time-button" data-interval="2h" onclick="handleSelectTimeFrame(this)">2h</button>
+          <button class="time-button" data-interval="4h" onclick="handleSelectTimeFrame(this)">4h</button>
+          <button class="time-button" data-interval="6h" onclick="handleSelectTimeFrame(this)">6h</button>
+          <button class="time-button" data-interval="8h" onclick="handleSelectTimeFrame(this)">8h</button>
+          <button class="time-button" data-interval="12h" onclick="handleSelectTimeFrame(this)">12h</button>
+          <button class="time-button" data-interval="1d" onclick="handleSelectTimeFrame(this)">1D</button>
+          <button class="time-button" data-interval="3d" onclick="handleSelectTimeFrame(this)">3D</button>
+          <button class="time-button" data-interval="1w" onclick="handleSelectTimeFrame(this)">1W</button>
+          <button class="time-button" data-interval="2w" onclick="handleSelectTimeFrame(this)">2W</button>
+          <button class="time-button" data-interval="1M" onclick="handleSelectTimeFrame(this)">1M</button>
+          <button class="time-button" onclick="handleResetChartView(this)">Reset</button>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+      <div class="function-buttons">
+        <button class="toggle-fibo fn-button" onclick="handleToggleFibo(this)">On Fibo</button>
+        <button class="fn-button" onclick="handleDeletePreviousFibo(this)">Delete Fibo</button>
+        <button class="toggle-trendline fn-button" onclick="handleToggleTrendline(this)">On Trendline</button>
+        <button class="fn-button" onclick="handleDeletePreviousTrendline(this)">Delete Trendline</button>
+      </div>
+    </div>
+    <div class="right-side">
+      <h3 class="chart-title">Watching List</h3>
+      <table class="symbol-table" id="price-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-symbol="BTCUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">BTCUSDT</td>
+            <td class="price-up">118,160.83</td>
+          </tr>
+          <tr data-symbol="ETHUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">ETHUSDT</td>
+            <td class="price-up">3,816.90</td>
+          </tr>
+          <tr data-symbol="BNBUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">BNBUSDT</td>
+            <td class="price-down">18.80</td>
+          </tr>
+          <tr data-symbol="LINKUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">LINKUSDT</td>
+            <td class="price-up">186.33</td>
+          </tr>
+          <tr data-symbol="SOLUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">SOLUSDT</td>
+            <td class="price-down">0.0940</td>
+          </tr>
+          <tr data-symbol="DOGEUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">DOGEUSDT</td>
+            <td class="price-up">795.51</td>
+          </tr>
+          <tr data-symbol="PEPEUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">PEPEUSDT</td>
+            <td class="price-down">0.00001404</td>
+          </tr>
+          <tr data-symbol="SHIBUSDT" onclick="handleSelectSymbol(this)">
+            <td class="symbol-cell">SHIBUSDT</td>
+            <td class="price-down">0.23818</td>
+          </tr>
+        </tbody>
+      </table>
+      <h1 class="main-last-price"><span id="last-price"></span> <span class="small-usdt">USDT</span></h1>
+    </div>
+  </div>
+</body>
+</html>

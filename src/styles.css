@@ -6,6 +6,7 @@
 
 .container {
   display: flex;
+  overflow-y: scroll;
 }
 
 .left-side {

@@ -273,7 +273,6 @@ function generateWhitespace(data, intervalStr) {
 
 function intervalToSeconds(intervalStr) {
   const num = parseInt(intervalStr);
-  console.log(intervalStr)
   if (intervalStr.endsWith('s')) return num;
   if (intervalStr.endsWith('m')) return num * 60;
   if (intervalStr.endsWith('h')) return num * 3600;
@@ -306,7 +305,6 @@ async function handleChartData(interval, symbol, limit) {
   const rawData = await fetchKlines(baseInterval, symbol, limit);
   const candleData = (groupSize === 1) ? rawData : mergeCandles(rawData, groupSize);
   priceSeries.setData(candleData);
-  console.log("AAAAAA", candleData)
   // thêm whiteData
   const futureWhiteSpace = generateWhitespace(candleData, interval);
   priceSeries.setData([...candleData, ...futureWhiteSpace]);

@@ -4,7 +4,7 @@
     "lightweight-charts": "^5.0.8"
   },
   "scripts": {
-    "start": "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },

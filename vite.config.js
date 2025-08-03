@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite'
 
+const repoName = 'Takamori25/chart'
+
 export default defineConfig({
-  // cấu hình mặc định đủ để Vercel nhận ra
+  base: `/${repoName}/`,
 })

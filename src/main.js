@@ -9,6 +9,7 @@ let fiboEnd = null;
 const fiboLines = [];
 const fiboLabels = []; // Global
 let fiboClickHandler = null; // biến toàn cục để lưu callback
+let timerClickHandler = null;
 let tempLine = null;
 let tempCircle = null;
 let moveHandler = null;
@@ -22,6 +23,10 @@ let trendStartCircle = null;
 let trendMoveHandler = null;
 let trendClickHandler = null;
 
+let timeoutId = null;
+let isAutoRunning = true;
+let selectTime = null;
+
 const container = document.getElementById('chart-container');
 const chart = createChart(container, {
   autoSize: true,
@@ -32,7 +37,7 @@ const chart = createChart(container, {
       visible: true,
       width: 1,
       color: '#888',
-      style: 3, // Solid line
+      style: 3,
       labelVisible: true,
     },
     horzLine: {
@@ -86,8 +91,14 @@ chart.timeScale().applyOptions({
 
 const pane2 = chart.addPane();
 
-async function fetchKlines(interval, symbol = 'BTCUSDT', limit = 3000) {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+async function fetchKlines(interval, symbol = 'BTCUSDT', limit = 3000, endTime) {
+  let url = ``
+  if (isAutoRunning || !endTime) {
+    url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  } else {
+    url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&endTime=${endTime}&limit=${limit}`;
+  }
+  
   const resp = await fetch(url);
   const data = await resp.json();
   return data.map(d => ({
@@ -112,7 +123,11 @@ function resetChartView() {
   });
   // Bật autoScale để resize trục theo dữ liệu mới
   priceSeries.priceScale().setAutoScale(true);
-  handleChartData(currentInterval, currentSymbol)
+  if (isAutoRunning) {
+    handleChartData(currentInterval, currentSymbol)
+  } else {
+    handleChartData(currentInterval, currentSymbol, 3000, selectTime)
+  }
 }
 
 function mergeCandles(data, groupSize) {
@@ -283,7 +298,7 @@ function intervalToSeconds(intervalStr) {
 }
 
 
-async function handleChartData(interval, symbol, limit) {
+async function handleChartData(interval, symbol, limit, endTime) {
   if (interval !== currentInterval || symbol !== currentSymbol) {
     // Bật autoScale để resize trục theo dữ liệu mới
     priceSeries.priceScale().setAutoScale(true);
@@ -302,8 +317,15 @@ async function handleChartData(interval, symbol, limit) {
     groupSize = 2;
   }
 
-  const rawData = await fetchKlines(baseInterval, symbol, limit);
-  const candleData = (groupSize === 1) ? rawData : mergeCandles(rawData, groupSize);
+  let candleData = null;
+  if (isAutoRunning) {
+    const rawData = await fetchKlines(baseInterval, symbol, limit);
+    candleData = (groupSize === 1) ? rawData : mergeCandles(rawData, groupSize);
+  } else {
+    let miliSecondEndTime = endTime * 1000;
+    const rawData = await fetchKlines(baseInterval, symbol, limit, miliSecondEndTime);
+    candleData = (groupSize === 1) ? rawData : mergeCandles(rawData, groupSize);
+  }
   priceSeries.setData(candleData);
   // thêm whiteData
   const futureWhiteSpace = generateWhitespace(candleData, interval);
@@ -380,17 +402,6 @@ async function handleChartData(interval, symbol, limit) {
     chart.timeScale().setVisibleLogicalRange(range);
   });
 
-  chart.subscribeCrosshairMove(param => {
-    if (param.time) {
-      const priceValue = param.seriesData.get(priceSeries);
-      chart.setCrosshairPosition({
-        time: param.time,
-        price: priceValue !== undefined ? priceValue.close ?? priceValue.value : undefined,
-      });
-    } else {
-      chart.clearCrosshairPosition();
-    }
-  });
   priceSeries.priceScale().applyOptions({
     autoScale: false,
   });
@@ -429,11 +440,15 @@ handleChartData('4h')
 
 window.handleSelectTimeFrame = function (buttonElement) {
   if (buttonElement) {
-    const intervalAttr = buttonElement.getAttribute('data-interval')
+    const intervalAttr = buttonElement.getAttribute('data-interval');
     const intervalDisplay = document.getElementById('current-interval');
     if (intervalAttr) {
       intervalDisplay.textContent = intervalAttr;
-      handleChartData(intervalAttr)
+      if (isAutoRunning) {
+        handleChartData(intervalAttr, currentSymbol)
+      } else {
+        handleChartData(intervalAttr, currentSymbol, 3000, selectTime)
+      }
     }
   }
 }
@@ -474,7 +489,12 @@ window.handleSelectSymbol = async function (symbolElement) {
         }
       });
       symbolDisplay.textContent = symbolAttr;
-      await handleChartData(currentInterval, symbolAttr)
+      
+      if (isAutoRunning) {
+        await handleChartData(currentInterval, symbolAttr)
+      } else {
+        await handleChartData(currentInterval, symbolAttr, 3000, selectTime)
+      }
       const currentPriceDisplay = document.getElementById('last-price');
       currentPriceDisplay.textContent = currentPrice;
       const tabDisplay = document.getElementById('tab-display');
@@ -494,6 +514,10 @@ async function fetchLastPrice(symbol) {
 }
 
 async function scheduleHandle() {
+  // Nếu không bật auto thì thoát (đề phòng nếu bị gọi thủ công)
+  const selectBarElement = document.querySelector('.select-bar-btn')
+  selectBarElement.disabled = true;
+  if (!isAutoRunning) return;
   await handleChartData(currentInterval, currentSymbol);
   const currentPriceDisplay = document.getElementById('last-price');
   const tabDisplay = document.getElementById('tab-display');
@@ -503,13 +527,147 @@ async function scheduleHandle() {
     const tbody = document.querySelector('#price-table tbody');
     const row = tbody.querySelector(`tr:nth-child(${i})`);
     const td = row.querySelector('td:nth-child(2)');
-    const symbolAttr = row.getAttribute('data-symbol')
-    td.textContent = await fetchLastPrice(symbolAttr)
+    const symbolAttr = row.getAttribute('data-symbol');
+    td.textContent = await fetchLastPrice(symbolAttr);
   }
-  setTimeout(scheduleHandle, 20_000);
+  // Lên lịch lần tiếp theo nếu vẫn bật
+  timeoutId = setTimeout(scheduleHandle, 20000);
 }
 
 scheduleHandle(); // Gọi lần đầu
+
+window.handleReplay = () => {
+  let Replaybtn = document.querySelector('.replay-btn')
+  const selectBarElement = document.querySelector('.select-bar-btn')
+  selectBarElement.disabled = false;
+  if (isAutoRunning) {
+    // Nếu đang chạy → dừng lại
+    isAutoRunning = false;
+    clearTimeout(timeoutId);
+    Replaybtn.textContent = 'Off Replay';
+    Replaybtn.style.backgroundColor = 'orange';
+     
+    chart.applyOptions({
+        crosshair: {
+          vertLine: {
+            color: '#2962ff',
+            width: 2,
+            style: 0,
+          },
+          horzLine: {
+            visible: false,
+          },
+        },
+      });
+    
+    // Bắt sự kiện click để lấy nến & reset line
+    timerClickHandler = param => {
+      if (!param.time) return;
+      chart.applyOptions({
+        crosshair: {
+          vertLine: {
+            color: '#888',
+            width: 1,
+            style: 3,
+          },
+          horzLine: {
+            visible: true,
+            color: '#888',
+            width: 1,
+          },
+        },
+      });
+      const endTime = param.time;
+      selectTime = param.time;
+      // Hủy sự kiện sau khi click
+      chart.unsubscribeClick(timerClickHandler);
+      handleChartData(currentInterval, currentSymbol, 3000, endTime)
+      const totalBars = latestDataLength;
+      const visibleBars = 150;
+      const offsetRight = 10;
+
+      if (totalBars < visibleBars) return; // tránh lỗi nếu dữ liệu chưa đủ
+
+      chart.timeScale().setVisibleLogicalRange({
+        from: totalBars - visibleBars,
+        to: totalBars + offsetRight,
+      });
+    };
+    chart.subscribeClick(timerClickHandler);
+ 
+  } else {
+    // Nếu đang dừng → chạy lại
+    isAutoRunning = true;
+    Replaybtn.textContent = 'On Replay';
+    Replaybtn.style.backgroundColor = 'white';
+    chart.applyOptions({
+      crosshair: {
+        vertLine: {
+          color: '#888',
+          width: 1,
+          style: 3,
+        },
+        horzLine: {
+          visible: true,
+          color: '#888',
+          width: 1,
+        },
+      },
+    });
+    scheduleHandle();
+    resetChartView();
+  }
+}
+
+window.handleSelectBar = () => {
+  chart.applyOptions({
+        crosshair: {
+          vertLine: {
+            color: '#2962ff',
+            width: 2,
+            style: 0,
+          },
+          horzLine: {
+            visible: false,
+          },
+        },
+      });
+    
+    // Bắt sự kiện click để lấy nến & reset line
+    timerClickHandler = param => {
+      if (!param.time) return;
+      chart.applyOptions({
+        crosshair: {
+          vertLine: {
+            color: '#888',
+            width: 1,
+            style: 3,
+          },
+          horzLine: {
+            visible: true,
+            color: '#888',
+            width: 1,
+          },
+        },
+      });
+      const endTime = param.time;
+      selectTime = param.time;
+      // Hủy sự kiện sau khi click
+      chart.unsubscribeClick(timerClickHandler);
+      handleChartData(currentInterval, currentSymbol, 3000, endTime)
+      const totalBars = latestDataLength;
+      const visibleBars = 150;
+      const offsetRight = 10;
+
+      if (totalBars < visibleBars) return; // tránh lỗi nếu dữ liệu chưa đủ
+
+      chart.timeScale().setVisibleLogicalRange({
+        from: totalBars - visibleBars,
+        to: totalBars + offsetRight,
+      });
+    };
+    chart.subscribeClick(timerClickHandler);
+}
 
 function drawFibonacci(start, end) {
   const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
